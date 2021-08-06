@@ -6,10 +6,10 @@ matched them with their positions and created a map showing the traffic flow at 
 I have included the following datasets:
 - The NETL1405.txt file which contains the SCOOT Link name, the upstream and downstream Nodes and Links, as well as other information not in the scope for this project
 - A table of Links, with their positions and live traffic flow fetched from the GCC API
-- A table of Links from the table above which contained either null or incorrect information (initially)
-- A table of some of the missing links, with their positional data in Easting/Northing co-ordinates
+- A table of Links with the Site ID and it's corresponding coordinates
+- Tables of some of the missing links, with their positional data in Easting/Northing coordinates
 - A table of each link pair and their corresponding co-ordinates without their bearings
-- 
+
 I have included scripts to:
 - Clean and process the Scoot Names and Connections from the NETL1405.txt file before assigning each link it's own file
 - A script to fetch live traffic data and positional information from the GCC live traffic API @ https://gcc.portal.azure-api.net/docs/services/traffic/operations/movement?
@@ -20,4 +20,4 @@ I have included scripts to:
 - A script to display all of these links on a map of Glasgow
 - A script to calculate the Bearings between each link pair (WIP)
 
-More scripts to come
+I have now uploaded the ArcGIS Map, along with the related shape datafiles used in it
