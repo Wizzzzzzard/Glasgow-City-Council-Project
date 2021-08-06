@@ -29,8 +29,14 @@ def get_API_positions(page_num):
         except Exception as e:
             print("[Errno {0}] {1}".format(e.errno, e.strerror))
     
+    # Saves data collected to dataframe with the following columns    
     df.columns = ['latitude', 'longitude', 'flow', 'concentration', 'site', 'lastupdateutc', 'lastupdate', 'timestamp']
     df.to_csv('link_positions.csv')
+
+
+def load_and_correct_junction_positions():
+    EN = pd.read_csv("Traffic Signals Co-ordinates 2021.csv")
+    EN_corrections = pd.read_csv("Replacement for Missing Data/missing data eastings and northings corrected bd v1.csv")
 
 get_API_positions(30)
 
@@ -169,3 +175,58 @@ def create_junction_dataframe():
     map_junctions_to_series_to_dataframe(arr, upstream_pattern1, upstream_pattern2)
 
 create_junction_dataframe()
+
+# Loads in Junction Dataframe and Positonal Dataframe
+Junctions = pd.read_csv('Junction-Links.csv',float_precision='round_trip')
+
+def Prepare_Positional_Data():
+    # Removes all columns bar Site ID and the Eastings and Northings
+    Positions = pd.read_csv("Traffic Signals Co-ordinates 2021.csv",float_precision='round_trip')
+    Positions = Positions[["FEID", "EASTINGS", "NORTHINGS"]]
+
+    # Loads in Dunbartonshire links
+    DD_Positions = pd.read_csv("Replacement for Missing Data/East Dunbartonshire (DD) Links.csv",float_precision='round_trip')
+
+    # Adds DD Link values
+    Positions = pd.concat([Positions, DD_Positions])
+
+    # Loads in incorrect or missing links not in Dunbartonshire
+    Position_replacement = pd.read_csv("Replacement for Missing Data/missing data eastings and northings corrected bd v1.csv")
+
+    # Replaces incorrect values with corrected values
+    Positions.set_index("FEID",inplace=True)
+    Position_replacement.set_index("FEID",inplace=True)
+    Positions.loc[Position_replacement.index, "EASTINGS"] = Position_replacement["Corrected Eastings"]
+    Positions.loc[Position_replacement.index, "NORTHINGS"] = Position_replacement["Corrected Northings"]
+    Positions.reset_index(inplace=True)
+
+    Positions.to_csv("Traffic Signals Co-ordinates 2021.csv", index=False)
+
+Prepare_Positional_Data()
+
+From_Positions = pd.read_csv("Traffic Signals Co-ordinates 2021.csv",float_precision='round_trip')
+From_Positions.rename(columns={'FEID': 'From'}, inplace=True)
+
+To_Positions = pd.read_csv("Traffic Signals Co-ordinates 2021.csv",float_precision='round_trip')
+To_Positions.rename(columns={'FEID': 'To_Node'}, inplace=True)
+
+# Merges Junctions with Positions on From
+Junctions = Junctions.merge(From_Positions, left_index=False, right_index=False, how='left', on=['From'])
+Junctions.rename(columns={'EASTINGS': 'FROM_EASTINGS', 'NORTHINGS': 'FROM_NORTHINGS'}, inplace=True)
+
+# Merges Junctions with Positions on To_Node
+Junctions = Junctions.merge(To_Positions, left_index=False, right_index=False, how='left', on=['To_Node'])
+Junctions.rename(columns={'EASTINGS': 'TO_EASTINGS', 'NORTHINGS': 'TO_NORTHINGS'}, inplace=True)
+
+# Drops unneeded index column
+Junctions.drop(['Unnamed: 0'], axis=1, inplace=True)
+
+Junctions.drop_duplicates(keep=False, inplace=True)
+
+# Flags all links that are bearings and removes to separate table
+bearings = Junctions.loc[Junctions['hasEntryLink'] == True]
+Junctions.drop(Junctions.loc[Junctions['hasEntryLink']==True].index, inplace=True)
+bearings.to_csv("Bearing_Links.csv")
+
+# Saves complete table to csv file
+Junctions.to_csv("BNG Links without Bearings.csv", index=False)
